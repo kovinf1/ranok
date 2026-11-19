@@ -1,4 +1,114 @@
 {
-  "updated": null,
-  "days": []
+  "updated": "2026-11-19T07:00:00+02:00",
+  "days": [
+    {
+      "date": "2026-11-19",
+      "articles": [
+        {
+          "title": "Anthropic готується до виходу на біржу Nasdaq під тикером ANT",
+          "url": "https://investinglive.com/news/anthropic-files-for-ipo-on-nasdaq-will-use-the-symbol-ant/",
+          "source": "investinglive.com",
+          "topic": "ШІ",
+          "lang": "en",
+          "summary": "Anthropic подала заявку на IPO на біржі Nasdaq і торгуватиме під символом ANT. За повідомленнями Nasdaq, торги мають розпочатися 19 листопада 2026 року. Подробиці про ціну розміщення в різних джерелах розходяться."
+        },
+        {
+          "title": "Дослідники з Ames Lab навчилися керувати «рукою» магнонів",
+          "url": "https://quantumzeitgeist.com/ames-magnon-handedness-quantum-lab-technologies/",
+          "source": "quantumzeitgeist.com",
+          "topic": "Фізика",
+          "lang": "en",
+          "summary": "Команда Національної лабораторії Ames виявила, що праві й ліві магнонні стани в феримагнетиках можуть змішуватися, тож хіральність магнітних хвиль перемикається з малими витратами енергії. Це може стати основою для квантових технологій; роботу опубліковано в Physical Review Letters."
+        },
+        {
+          "title": "Китай випробував Q/V-діапазон для 6G і супутникового інтернету зі швидкістю 6,75 Гбіт/с",
+          "url": "https://english.news.cn/20261117/b3e1236c4b8840e6936ba0af217b3bad/c.html",
+          "source": "english.news.cn",
+          "topic": "Звук і радіо",
+          "lang": "en",
+          "summary": "Дослідники Китайської академії наук на станції в Юньнані досягли до 6,75 Гбіт/с на одному каналі у двосторонній передачі. Команда повідомляє про прориви в легких антенах і компенсації фазового шуму."
+        },
+        {
+          "title": "Meridian Space встановила перший високошвидкісний зв'язок з орбіти",
+          "url": "https://www.globenewswire.com/news-release/2026/11/17/3404814/0/en/meridian-space-successfully-establishes-first-high-bandwidth-communications-link-in-orbit.html",
+          "source": "globenewswire.com",
+          "topic": "Звук і радіо",
+          "lang": "en",
+          "summary": "Після запуску на Transporter-18 компанія встановила високошвидкісний канал через свій перший супутниковий корисний вантаж. Він містить легку електронно переконфігуровувану антену-рефлектарей."
+        },
+        {
+          "title": "Rise Technologies оснастила розвідувальний дрон Puma системою зв'язку Palych, стійкою до РЕБ",
+          "url": "https://united24media.com/defense-tech/us-made-puma-drones-were-grounded-by-electronic-warfare-ukraine-has-now-upgraded-them-to-fight-back-24528",
+          "source": "united24media.com",
+          "topic": "Військові технології",
+          "lang": "en",
+          "summary": "Американські дрони Puma виявилися вразливими до РЕБ, і українська компанія вбудувала в RQ-20A систему зв'язку Palych. Заявлена дальність місій — до 50 км навіть за активного глушіння."
+        },
+        {
+          "title": "В Україні показали нову систему самозахисту від FPV-дронів",
+          "url": "https://www.technology.org/2026/11/18/ukraine-showcased-new-anti-fpv-drone-self-defence-system/",
+          "source": "technology.org",
+          "topic": "Військові технології",
+          "lang": "en",
+          "summary": "Україна представила нову систему індивідуального захисту від FPV-дронів. Це частина ширшого тренду розробок протидії малим ударним дронам на фронті."
+        },
+        {
+          "title": "Росія застосовує оптоволоконні дрони «Молнія» на глибину до 30 км",
+          "url": "https://www.pravda.com.ua/eng/news/2026/11/19/8063590/",
+          "source": "pravda.com.ua",
+          "topic": "Військові технології",
+          "lang": "en",
+          "summary": "Російські війська використовують оптоволоконні ударні та розвідувальні дрони «Молнія» за 30 км від лінії фронту. Оскільки вони не керуються по радіо, їх складніше виявити засобами РЕБ і радіолокації."
+        },
+        {
+          "title": "Adobe випустила After Effects 27.0 з ШІ-асистентом",
+          "url": "https://www.cgchannel.com/2026/11/adobe-releases-after-effects-27-0/",
+          "source": "cgchannel.com",
+          "topic": "Монтаж і графіка",
+          "lang": "en",
+          "summary": "Листопадове оновлення додає панель AI Assistant, шари як матеріали для 3D-об'єктів, матеріали Substance 3D для тексту й фігур та ефект Contour Paint. Покращено й автозбереження проєктів."
+        },
+        {
+          "title": "Adobe MAX 2026: ШІ-агенти в After Effects і Premiere Pro",
+          "url": "https://www.awn.com/news/adobe-brings-ai-agents-after-effects-premiere-adobe-max-2026",
+          "source": "awn.com",
+          "topic": "Монтаж і графіка",
+          "lang": "en",
+          "summary": "На MAX 2026 Adobe показала ШІ-агентів, що застосовують ефекти до всієї послідовності, відстежують маски й коригують колір. Також анонсовано підтримку MCP із закритою бета-версією на початку 2027 року."
+        },
+        {
+          "title": "Акції Shopify впали на 13% за місяць попри зростання виручки на 32%",
+          "url": "https://rswebsols.com/news/shopify-plummets-13-in-a-month-despite-capturing-almost-half-of-us-e-commerce-expansion",
+          "source": "rswebsols.com",
+          "topic": "E-commerce",
+          "lang": "en",
+          "summary": "Падіння пов'язують із секторним розпродажем технологічних акцій та трохи слабшим за очікування обсягом продажів за третій квартал. Згадується, що агент Meta Muse використовує Shop Pay для оформлення замовлень."
+        },
+        {
+          "title": "Норріс і Боттас не бояться їхати на Катар та Абу-Дабі попри конфлікт на Близькому Сході",
+          "url": "https://www.autoracing1.com/pl/510077/formula-1-news-norris-bottas-dismiss-qatar-and-abu-dhabi-fears/",
+          "source": "autoracing1.com",
+          "topic": "Формула 1",
+          "lang": "en",
+          "summary": "Пілоти кажуть, що не мають занепокоєння щодо фінальних гонок сезону в Катарі й Абу-Дабі. Обидва етапи поки залишаються в календарі."
+        },
+        {
+          "title": "Алонсо: я не буду на старті, коли повернуться V8",
+          "url": "https://racingnews365.com/fernando-alonso-makes-f1-retirement-decision-ahead-of-looming-v8-engine-return",
+          "source": "racingnews365.com",
+          "topic": "Формула 1",
+          "lang": "en",
+          "summary": "Фернандо Алонсо заявив, що точно не виступатиме у Формулі 1 до часу повернення моторів V8 у 2030 році. Новина з'явилась на тлі суперечливих оголошень про майбутній регламент двигунів."
+        },
+        {
+          "title": "Мілан розглядає можливість підписати Габріеле Кальвані",
+          "url": "https://sempremilan.com/milan-considering-move-blossoming-calvani",
+          "source": "sempremilan.com",
+          "topic": "Серія А",
+          "lang": "en",
+          "summary": "За даними GdS, «россонері» можуть спробувати підписати молодого Кальвані наступного року. Наразі гравець має проблему зі згиначем, що може вплинути на його доступність."
+        }
+      ]
+    }
+  ]
 }
