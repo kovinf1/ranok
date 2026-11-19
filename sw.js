@@ -1,5 +1,6 @@
-// Offline support: app shell is cached; articles.json is fetched fresh, cached copy used when offline.
-const CACHE = 'ranok-v1';
+// Network-first for everything on this origin (so design updates and new articles show at once);
+// cached copy is used only when offline.
+const CACHE = 'ranok-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -11,14 +12,10 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  if (url.origin !== location.origin) return;
-  if (url.pathname.endsWith('articles.json')) {
-    e.respondWith(fetch(e.request).then(r => {
-      const copy = r.clone();
-      caches.open(CACHE).then(c => c.put('articles.json', copy));
-      return r;
-    }).catch(() => caches.match('articles.json')));
-    return;
-  }
-  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request)));
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  const key = url.pathname.endsWith('articles.json') ? 'articles.json' : e.request;
+  e.respondWith(fetch(e.request).then(r => {
+    if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(key, copy)); }
+    return r;
+  }).catch(() => caches.match(key).then(hit => hit || caches.match('index.html'))));
 });
