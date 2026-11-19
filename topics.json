@@ -1,5 +1,6 @@
 {
-  "perTopic": 3,
+  "perTopic": 2,
+  "maxPerTopicTotal": 7,
   "keepDays": 7,
   "languages": ["uk", "en", "it"],
   "topics": [
