@@ -1,6 +1,6 @@
 // Network-first for everything on this origin (so design updates and new articles show at once);
 // cached copy is used only when offline.
-const CACHE = 'ranok-v2';
+const CACHE = 'ranok-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

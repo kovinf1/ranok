@@ -120,6 +120,23 @@ h2.day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   border: 1px solid var(--line); background: var(--panel); color: var(--white); text-decoration: none;
   border-radius: 14px; padding: 14px; font-weight: 700; }
 .note { color: var(--muted); font-size: 13px; margin-top: 12px; text-align: center; }
+
+/* ---------- bookmarks ---------- */
+.bm { border: 0; background: var(--panel); border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 15px;
+  display: flex; gap: 6px; align-items: center; transition: background .15s; }
+.bm svg { width: 18px; height: 18px; }
+.bm.on { background: var(--red); }
+.bm.on svg { fill: currentColor; }
+.savebig { width: 100%; justify-content: center; padding: 14px; border-radius: 14px; margin-top: 22px; border: 1px solid var(--line); }
+.savebig.on { border-color: var(--red); }
+.savebig + .orig { margin-top: 10px; }
+.star { color: var(--gold); font-weight: 800; }
+.chip.saved { border-color: rgba(216,178,90,.45); }
+.chip.saved.on { background: var(--gold); border-color: var(--gold); color: #111; }
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translate(-50%, 30px);
+  background: var(--white); color: #111; font-weight: 700; font-size: 15px; padding: 10px 18px; border-radius: 999px;
+  opacity: 0; transition: .25s; z-index: 80; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
@@ -134,24 +151,34 @@ h2.day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 <section class="reader" id="reader" aria-hidden="true">
   <div class="rbar">
     <button class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Назад</button>
-    <div class="stripes-mini"></div>
+    <button class="bm" data-bm="1"></button>
   </div>
   <div id="rcontent"></div>
 </section>
+<div class="toast" id="toast"></div>
 
 <script>
-const READ_KEY = 'ranok-read';
+const READ_KEY = 'ranok-read', SAVED_KEY = 'ranok-saved', SAVED_TAB = '★';
+const SHOW_PER_TOPIC = 5;          // скільки непрочитаних статей показувати в кожній рубриці
+const SLOTS = [7, 13, 19];         // приблизний час оновлень (за Києвом)
 const LANGS = { en: 'англійською', it: 'італійською', uk: 'українською', de: 'німецькою', fr: 'французькою', es: 'іспанською', pl: 'польською' };
-let data = { days: [] }, topic = 'Усі', unreadOnly = false, flat = [];
+const STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>';
 
-const store = {
-  get() { try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')); } catch { return new Set(); } },
-  set(s) { try { localStorage.setItem(READ_KEY, JSON.stringify([...s].slice(-2000))); } catch {} }
+const ls = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
-let read = store.get();
+let read = new Set(ls.get(READ_KEY, []));
+let saved = ls.get(SAVED_KEY, []); if (!Array.isArray(saved)) saved = [];
+const saveRead = () => ls.set(READ_KEY, [...read].slice(-3000));
+const saveSaved = () => ls.set(SAVED_KEY, saved);
+const isSaved = u => saved.some(s => s.url === u);
+
+let data = { days: [] }, topic = 'Усі', pool = [], shown = [], current = null;
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function dayLabel(iso) {
+  if (!iso) return '';
   const d = new Date(iso + 'T12:00:00'), t = new Date(); t.setHours(12,0,0,0);
   const diff = Math.round((t - d) / 864e5);
   if (diff === 0) return 'Сьогодні';
@@ -165,50 +192,90 @@ function media(a, cls = '') {
     onload="this.previousElementSibling.remove()" onerror="this.remove()"></div>`;
 }
 const mins = a => a.readMinutes ? `${a.readMinutes} хв` : '';
-const metaLine = a => [esc(a.source), mins(a)].filter(Boolean).join('<span class="dot">•</span>');
+const metaLine = a => [isSaved(a.url) ? '<span class="star">★</span>' : '', esc(a.source), mins(a)].filter(Boolean).join('<span class="dot">•</span>');
+const nextSlot = () => { const h = new Date().getHours(); return (SLOTS.find(s => s > h) ?? SLOTS[0]) + ':00'; };
+const find = u => pool.find(a => a.url === u) || saved.find(a => a.url === u);
 
-function render() {
-  flat = data.days.flatMap(d => d.articles.map(a => ({ ...a, date: d.date })));
-  const counts = {};
-  flat.forEach(a => { counts[a.topic] = (counts[a.topic] || 0) + 1; });
-  const topics = ['Усі', ...Object.keys(counts)];
-  document.getElementById('chips').innerHTML =
-    topics.map(t => `<button class="chip ${t === topic ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}${t !== 'Усі' ? `<span class="n">${counts[t]}</span>` : ''}</button>`).join('') +
-    `<button class="chip ${unreadOnly ? 'on' : ''}" data-u="1">Непрочитані</button>`;
-
-  const unread = flat.filter(a => !read.has(a.url)).length;
-  document.getElementById('stats').innerHTML = flat.length
-    ? `<span class="stat"><b>${flat.length}</b> статей</span><span class="stat"><b>${unread}</b> непрочитаних</span><span class="stat"><b>${Object.keys(counts).length}</b> рубрик</span>`
-    : `<span class="stat">Чекаю на перший випуск</span>`;
-
-  let html = '', heroDone = false;
-  for (const day of data.days) {
-    const arts = day.articles.filter(a => (topic === 'Усі' || a.topic === topic) && (!unreadOnly || !read.has(a.url)));
-    if (!arts.length) continue;
-    html += `<h2 class="day">${esc(dayLabel(day.date))}</h2>`;
-    arts.forEach(a => {
-      const i = flat.findIndex(f => f.url === a.url);
-      const isRead = read.has(a.url);
-      if (!heroDone && !isRead) {
-        heroDone = true;
-        html += `<button class="hero" data-i="${i}">${media(a)}
-          <div class="over"><span class="badge-top">Головне</span> <span class="tag">${esc(a.topic)}</span><div class="title">${esc(a.title)}</div>
-          <div class="lead">${esc(a.lead || a.summary)}</div></div></button>`;
-      } else {
-        html += `<button class="card ${isRead ? 'read' : ''}" data-i="${i}"><div>
-          <span class="tag">${esc(a.topic)}</span><div class="title">${esc(a.title)}</div>
-          <div class="meta">${metaLine(a)}</div></div>${media(a)}</button>`;
-      }
-    });
+// Нові спершу; у кожній рубриці — не більше SHOW_PER_TOPIC непрочитаних, решта чекає в резерві.
+function visible() {
+  const per = {}, out = [];
+  for (const a of pool) {
+    if (read.has(a.url)) continue;
+    per[a.topic] = (per[a.topic] || 0) + 1;
+    if (per[a.topic] <= SHOW_PER_TOPIC) out.push(a);
   }
-  const list = document.getElementById('list');
-  list.innerHTML = html || `<div class="empty"><b>Поки що порожньо</b>Свіжі статті з'являться о 7:00.</div>`;
-  if (html) list.insertAdjacentHTML('beforeend', `<div class="foot"><span>Оновлено ${esc(data.updated ? new Date(data.updated).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')}</span><button class="linkbtn" id="allread">Усе прочитано</button></div>`);
+  return out;
 }
 
-function openReader(i, push = true) {
-  const a = flat[i]; if (!a) return;
-  read.add(a.url); store.set(read);
+function card(a, hero) {
+  const i = shown.push(a) - 1;
+  if (hero) return `<button class="hero" data-i="${i}">${media(a)}
+    <div class="over"><span class="badge-top">Головне</span> <span class="tag">${esc(a.topic)}</span><div class="title">${esc(a.title)}</div>
+    <div class="lead">${esc(a.lead || a.summary)}</div></div></button>`;
+  return `<button class="card" data-i="${i}"><div>
+    <span class="tag">${esc(a.topic)}</span><div class="title">${esc(a.title)}</div>
+    <div class="meta">${metaLine(a)}</div></div>${media(a)}</button>`;
+}
+
+function render() {
+  const vis = visible();
+  const unreadTotal = pool.filter(a => !read.has(a.url)).length;
+  const counts = {};
+  vis.forEach(a => { counts[a.topic] = (counts[a.topic] || 0) + 1; });
+  const topics = [...new Set(pool.map(a => a.topic))].filter(t => counts[t] || t === topic);
+
+  document.getElementById('chips').innerHTML =
+    `<button class="chip ${topic === 'Усі' ? 'on' : ''}" data-t="Усі">Усі<span class="n">${vis.length}</span></button>` +
+    topics.map(t => `<button class="chip ${t === topic ? 'on' : ''}" data-t="${esc(t)}">${esc(t)}<span class="n">${counts[t] || 0}</span></button>`).join('') +
+    `<button class="chip saved ${topic === SAVED_TAB ? 'on' : ''}" data-t="${SAVED_TAB}">★ Закладки<span class="n">${saved.length}</span></button>`;
+
+  document.getElementById('stats').innerHTML = pool.length || saved.length
+    ? `<span class="stat"><b>${vis.length}</b> нових</span><span class="stat"><b>${unreadTotal - vis.length}</b> у резерві</span><span class="stat"><b>${saved.length}</b> у закладках</span>`
+    : `<span class="stat">Чекаю на перший випуск</span>`;
+
+  shown = [];
+  let html = '';
+  if (topic === SAVED_TAB) {
+    const list = [...saved].sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    if (list.length) html = `<h2 class="day">Закладки</h2>` + list.map(a => card(a, false)).join('');
+    else html = `<div class="empty"><b>Закладок поки немає</b>Відкрий статтю й натисни «☆ Зберегти» — вона лишиться тут, доки сам її не прибереш.</div>`;
+  } else {
+    const items = vis.filter(a => topic === 'Усі' || a.topic === topic);
+    let lastDay = null;
+    items.forEach((a, k) => {
+      if (a.date !== lastDay) { lastDay = a.date; html += `<h2 class="day">${esc(dayLabel(a.date))}</h2>`; }
+      html += card(a, k === 0);
+    });
+    if (!items.length) html = `<div class="empty"><b>${pool.length ? 'Усе прочитано' : 'Поки що порожньо'}</b>Нові статті прийдуть близько ${nextSlot()}.</div>`;
+    else html += `<div class="foot"><span>Оновлено ${esc(data.updated ? new Date(data.updated).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—')}</span><button class="linkbtn" id="allread">Сховати всі</button></div>`;
+  }
+  document.getElementById('list').innerHTML = html;
+}
+
+function bmButtons() {
+  const on = current && isSaved(current.url);
+  document.querySelectorAll('[data-bm]').forEach(b => {
+    b.classList.toggle('on', on);
+    b.innerHTML = STAR + (on ? 'У закладках' : 'Зберегти');
+  });
+}
+function toggleSave() {
+  if (!current) return;
+  if (isSaved(current.url)) { saved = saved.filter(s => s.url !== current.url); toast('Прибрано із закладок'); }
+  else { const { _k, ...copy } = current; saved.push({ ...copy, savedAt: Date.now() }); toast('★ Збережено в закладки'); }
+  saveSaved(); bmButtons();
+}
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function openReader(u, push = true) {
+  const a = find(u); if (!a) return;
+  current = a;
+  read.add(a.url); saveRead();
   const langNote = a.lang && a.lang !== 'uk' ? `Оригінал ${LANGS[a.lang] || a.lang.toUpperCase()}` : 'Оригінал';
   const body = Array.isArray(a.body) && a.body.length ? a.body : [a.summary];
   document.getElementById('rcontent').innerHTML = `
@@ -216,32 +283,39 @@ function openReader(i, push = true) {
     <article class="rbody">
       <span class="tag">${esc(a.topic)}</span>
       <h1>${esc(a.title)}</h1>
-      <div class="meta">${esc(a.source)}<span class="dot">•</span>${esc(dayLabel(a.date))}${a.readMinutes ? `<span class="dot">•</span>${a.readMinutes} хв читання` : ''}</div>
+      <div class="meta">${esc(a.source)}${a.date ? `<span class="dot">•</span>${esc(dayLabel(a.date))}` : ''}${a.readMinutes ? `<span class="dot">•</span>${a.readMinutes} хв читання` : ''}</div>
       ${a.lead ? `<div class="rlead">${esc(a.lead)}</div>` : ''}
       ${Array.isArray(a.keyPoints) && a.keyPoints.length ? `<div class="box"><h3>Головне</h3><ul>${a.keyPoints.map(k => `<li>${esc(k)}</li>`).join('')}</ul></div>` : ''}
       ${body.map(p => `<p>${esc(p)}</p>`).join('')}
       ${a.whyItMatters ? `<div class="box why"><h3>Чому це важливо</h3>${esc(a.whyItMatters)}</div>` : ''}
+      <button class="bm savebig" data-bm="1"></button>
       <a class="orig" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(langNote)} ↗</a>
       <div class="note">Переказ українською підготовлено автоматично за матеріалом ${esc(a.source)}.</div>
     </article>`;
+  bmButtons();
   const r = document.getElementById('reader');
   r.scrollTop = 0; r.classList.add('open'); r.setAttribute('aria-hidden', 'false');
-  if (push) history.pushState({ i }, '', '#a' + i);
+  if (push) history.pushState({ u }, '', '#read');
 }
 function closeReader() {
   const r = document.getElementById('reader');
   r.classList.remove('open'); r.setAttribute('aria-hidden', 'true');
+  current = null;
   render();
 }
-window.addEventListener('popstate', e => { if (e.state && e.state.i != null) openReader(e.state.i, false); else closeReader(); });
-document.getElementById('back').addEventListener('click', () => { if (history.state && history.state.i != null) history.back(); else closeReader(); });
+window.addEventListener('popstate', e => { if (e.state && e.state.u) openReader(e.state.u, false); else closeReader(); });
+document.getElementById('back').addEventListener('click', () => { if (history.state && history.state.u) history.back(); else closeReader(); });
 
 document.addEventListener('click', e => {
+  if (e.target.closest('[data-bm]')) { toggleSave(); return; }
   const chip = e.target.closest('.chip');
-  if (chip) { if (chip.dataset.u) unreadOnly = !unreadOnly; else topic = chip.dataset.t; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  if (chip) { topic = chip.dataset.t; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   const item = e.target.closest('[data-i]');
-  if (item) { openReader(+item.dataset.i); return; }
-  if (e.target.id === 'allread') { flat.forEach(a => read.add(a.url)); store.set(read); render(); }
+  if (item) { const a = shown[+item.dataset.i]; if (a) openReader(a.url); return; }
+  if (e.target.id === 'allread') {
+    shown.forEach(a => read.add(a.url)); saveRead(); render();
+    toast('Сховано. Показую наступні з резерву'); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 });
 
 async function load() {
@@ -250,6 +324,11 @@ async function load() {
     const r = await fetch('articles.json?t=' + Date.now(), { cache: 'no-store' });
     data = await r.json();
   } catch {}
+  const days = Array.isArray(data.days) ? data.days : [];
+  pool = days.flatMap(d => (d.articles || []).map(a => ({ ...a, date: d.date })))
+    .sort((a, b) => String(b.added || b.date).localeCompare(String(a.added || a.date)));
+  // Прочитані статті, яких уже немає у випуску, забуваємо (щоб пам'ять не росла).
+  if (pool.length) { const urls = new Set(pool.map(a => a.url)); read = new Set([...read].filter(u => urls.has(u))); saveRead(); }
   render();
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !document.getElementById('reader').classList.contains('open')) load(); });

@@ -1,7 +1,8 @@
 {
+  "runsPerDay": 3,
   "perTopic": 2,
-  "maxPerTopicTotal": 7,
-  "keepDays": 7,
+  "maxPerTopicTotal": 12,
+  "keepDays": 4,
   "languages": ["uk", "en", "it"],
   "topics": [
     {
