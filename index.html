@@ -133,6 +133,20 @@ h2.day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .star { color: var(--gold); font-weight: 800; }
 .chip.saved { border-color: rgba(216,178,90,.45); }
 .chip.saved.on { background: var(--gold); border-color: var(--gold); color: #111; }
+/* ---------- terms & ask ---------- */
+.term { margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: #e2e0dd; }
+.term:first-of-type { margin-top: 0; }
+.term b { display: block; color: var(--white); font-size: 16px; margin-bottom: 2px; }
+.ask { border-color: rgba(216,178,90,.35); }
+.ask h3 { color: var(--gold); }
+.askrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.askbtn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 999px; padding: 9px 14px; font-size: 15px; font-weight: 650; }
+.askform { display: flex; gap: 8px; margin-top: 12px; }
+.askform input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--white); background: var(--black);
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; outline: none; }
+.askform input:focus { border-color: var(--gold); }
+.askform button { flex: none; width: 46px; border: 0; border-radius: 12px; background: var(--gold); color: #111; font-size: 20px; font-weight: 900; }
+.asknote { color: var(--muted); font-size: 13px; margin-top: 10px; line-height: 1.4; }
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 24px); transform: translate(-50%, 30px);
   background: var(--white); color: #111; font-weight: 700; font-size: 15px; padding: 10px 18px; border-radius: 999px;
   opacity: 0; transition: .25s; z-index: 80; pointer-events: none; white-space: nowrap; }
@@ -265,6 +279,24 @@ function toggleSave() {
   else { const { _k, ...copy } = current; saved.push({ ...copy, savedAt: Date.now() }); toast('★ Збережено в закладки'); }
   saveSaved(); bmButtons();
 }
+const ASKS = [
+  { label: 'Поясни простіше', q: 'Поясни простими словами, що це таке і чому це важливо, ніби я не фахівець. Наведи приклад із життя.' },
+  { label: 'Як це працює?', q: 'Розкажи детально, як це працює технічно: принципи, будова, ключові цифри. Якщо є фізика чи радіотехніка — поясни її.' },
+  { label: 'Що ще відомо?', q: 'Що ще відомо на цю тему: передісторія, хто ще цим займається, що буде далі? Знайди найсвіжіші новини.' }
+];
+function askClaude(question) {
+  if (!current || !question) return;
+  const a = current;
+  const prompt = `Я читаю новину «${a.title}» (${a.url}).\nКоротко: ${a.lead || a.summary || ''}\n\n${question}\n\nВідповідай українською, простими словами, але не втрачаючи технічних деталей. Пошукай актуальну інформацію в інтернеті й дай посилання на джерела.`;
+  try { navigator.clipboard && navigator.clipboard.writeText(prompt).catch(() => {}); } catch {}
+  window.open('https://claude.ai/new?q=' + encodeURIComponent(prompt), '_blank', 'noopener');
+}
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'askform') return;
+  e.preventDefault();
+  const q = document.getElementById('askq').value.trim();
+  if (q) askClaude(q); else toast('Напиши питання');
+});
 let toastT;
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -287,7 +319,13 @@ function openReader(u, push = true) {
       ${a.lead ? `<div class="rlead">${esc(a.lead)}</div>` : ''}
       ${Array.isArray(a.keyPoints) && a.keyPoints.length ? `<div class="box"><h3>Головне</h3><ul>${a.keyPoints.map(k => `<li>${esc(k)}</li>`).join('')}</ul></div>` : ''}
       ${body.map(p => `<p>${esc(p)}</p>`).join('')}
+      ${Array.isArray(a.terms) && a.terms.length ? `<div class="box terms"><h3>Що означають терміни</h3>${a.terms.map(t => `<div class="term"><b>${esc(t.term)}</b>${esc(t.text)}</div>`).join('')}</div>` : ''}
       ${a.whyItMatters ? `<div class="box why"><h3>Чому це важливо</h3>${esc(a.whyItMatters)}</div>` : ''}
+      <div class="box ask"><h3>Хочеш більше? Запитай Claude</h3>
+        <div class="askrow">${ASKS.map((q, k) => `<button class="askbtn" data-ask="${k}">${esc(q.label)}</button>`).join('')}</div>
+        <form class="askform" id="askform"><input id="askq" type="text" placeholder="Своє питання про цю статтю…" enterkeyhint="send" autocomplete="off"><button type="submit" aria-label="Запитати">↑</button></form>
+        <div class="asknote">Відкриється Claude з цією статтею й питанням. Він пошукає свіжі джерела й відповість українською.</div>
+      </div>
       <button class="bm savebig" data-bm="1"></button>
       <a class="orig" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(langNote)} ↗</a>
       <div class="note">Переказ українською підготовлено автоматично за матеріалом ${esc(a.source)}.</div>
@@ -308,6 +346,8 @@ document.getElementById('back').addEventListener('click', () => { if (history.st
 
 document.addEventListener('click', e => {
   if (e.target.closest('[data-bm]')) { toggleSave(); return; }
+  const ask = e.target.closest('[data-ask]');
+  if (ask) { askClaude(ASKS[+ask.dataset.ask].q); return; }
   const chip = e.target.closest('.chip');
   if (chip) { topic = chip.dataset.t; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   const item = e.target.closest('[data-i]');
